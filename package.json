@@ -1,0 +1,16 @@
+{
+  "name": "pi-proofkit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Portable proof packs with offline verification: claims, evidence, and a reproducible SHA-256 over a fully-specified canonical form.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node test/proofkit.test.mjs",
+    "example": "node proofkit-cli.mjs --example",
+    "boundaries": "node proofkit-cli.mjs --boundaries"
+  }
+}

@@ -1,0 +1,77 @@
+# Pi ProofKit — llms.txt
+# Portable proof packs with offline verification: claims + evidence + a
+# reproducible sha256 over a fully-specified canonical form.
+
+> A bare number cannot be checked. A signed number requires trusting a signer.
+> A proof pack can be checked by anyone, because it ships the exact bytes hashed.
+
+## What it is
+- read-only, zero-dependency, Node (ESM)
+- lib.mjs: canonical form, claim kinds, validation, boundaries (imports nothing)
+- pack.mjs: buildPack / verifyPack / renderPack / renderVerification (offline)
+- proofkit-cli.mjs: --example --build --verify --canonical --hash --boundaries
+- fixtures.mjs: the worked example pack
+- test/proofkit.test.mjs: offline invariants, incl. a pin of the canonical form
+
+## The one thing to remember
+A digest proves INTEGRITY, not TRUTH.
+- passing => the bytes are UNALTERED since the digest was taken (nothing more)
+- it does NOT mean the claims are correct, complete, or well-founded
+- to judge a claim you must read its basis and its evidence
+
+## Canonical form (fully specified)
+line  = {key}|{kind}|{value}|{basis}
+lines = joined by "\n", pack order, NO trailing newline
+null  = the literal four characters "null"
+input = UTF-8 bytes (no BOM), hashed with sha256, rendered lowercase hex
+not hashed: the digest itself, the label, and the evidence blob
+
+## Anatomy
+- scope:     endpoint, tool, version, measuredAt  (a pack is SCOPED, never universal)
+- claims:    key | kind | value | basis           (inside the digest)
+- evidence:  how to reach a value (cmd/URL)       (NOT inside the digest)
+- canonical: the exact bytes + their sha256       (the thing you hash yourself)
+
+## Claim kinds
+measured (basis REQUIRED) | documented | derived | asserted (weakest) | not-claimed
+A measured claim with no basis is REFUSED at build time.
+A value/basis containing "|" or a newline is REFUSED (ambiguous form).
+Duplicate keys are REFUSED.
+
+## Verification: three verdicts, kept apart
+intact   recomputed == recorded;  bytes unaltered        exit 0
+tampered recomputed != recorded;  pack was altered       exit 1
+invalid  pack malformed;          NO conclusion          exit 2
+changing a BASIS alone      -> tampered (basis is hashed)
+changing EVIDENCE alone     -> intact   (evidence is referenced, not hashed)
+reordering claims           -> tampered (order is significant)
+
+## Verified by an independent tool
+example pack digest: 1e94219c8f934921edfdab37ed06f4b2874fe5830d86d67d7d702c8385a04876
+PowerShell's own SHA256 over the same canonical bytes produced the same string.
+
+## Example pack (measured 2026-10-19, node 28.0.1, protocol 28)
+network.passphrase measured "Pi Testnet"
+node.version       measured "28.0.1"
+protocol.version   measured 28
+events.pageCap     measured 100
+ledger.retentionWindow measured 120960
+ledger.retentionDays   derived  7
+endLedger.exclusive    measured true
+mainnet.sorobanRpc.reachable measured false
+
+## Usage
+- node proofkit-cli.mjs --example [--json]
+- node proofkit-cli.mjs --build claims.json [--json]
+- node proofkit-cli.mjs --verify pack.json [--json]     (exit 0/1/2)
+- node proofkit-cli.mjs --canonical claims.json         (bytes to hash yourself)
+- node proofkit-cli.mjs --hash somefile.txt
+- node proofkit-cli.mjs --boundaries
+
+## Not claimed
+- that a passing verification proves the claims are true
+- that a claim is complete, or that no other claim exists
+- that a pack holds at another endpoint, version or time
+- that the author is authenticated (a digest is not a signature)
+- that the evidence's CONTENT is covered by the digest
+- that Pi Network has adopted, reviewed or endorsed this
